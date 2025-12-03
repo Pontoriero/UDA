@@ -97,14 +97,14 @@ CREATE TABLE IF NOT EXISTS valutazioni (
 -- Inserimento utente admin di default
 -- Password: admin123 (da cambiare dopo il primo accesso)
 INSERT INTO utenti (username, password, nome, cognome, email, ruolo)
-VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Amministratore', 'Sistema', 'admin@uda-portal.local', 'admin');
+VALUES ('admin', '$2y$12$H6bQsk2kO5XtsMSHaYJ9uO3n2.xAF3HoXYA9vR9uwnSdWl20ZIyBK', 'Amministratore', 'Sistema', 'admin@uda-portal.local', 'admin');
 
 -- Inserimento docente di esempio
 -- Password: docente123
 INSERT INTO utenti (username, password, nome, cognome, email, ruolo)
-VALUES ('docente1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Mario', 'Rossi', 'mario.rossi@scuola.it', 'docente');
+VALUES ('docente1', '$2y$12$fVHq5ju7rN/kvTLtx8cv6u0qBKlirVu.Y6ny8DfjgEYWzuu1qFJAW', 'Mario', 'Rossi', 'mario.rossi@scuola.it', 'docente');
 
 -- Inserimento studente di esempio
 -- Password: studente123
 INSERT INTO utenti (username, password, nome, cognome, email, ruolo)
-VALUES ('studente1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Luca', 'Bianchi', 'luca.bianchi@studenti.it', 'studente');
+VALUES ('studente1', '$2y$12$Zl0BhihoGFhUHIqcyTuBBunRGIbSLO8m9Fmzo.T3hbDk3tJ7WwdK6', 'Luca', 'Bianchi', 'luca.bianchi@studenti.it', 'studente');
