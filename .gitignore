@@ -1,0 +1,31 @@
+# Ignore configuration files with sensitive data
+config/config.php
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.temp
+*.swp
+*.bak
+
+# Ignore uploaded files (if any)
+uploads/
+public/uploads/
+
+# Ignore vendor directory (if using Composer)
+vendor/
+
+# Ignore node modules (if using npm)
+node_modules/
