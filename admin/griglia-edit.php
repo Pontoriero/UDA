@@ -169,7 +169,10 @@ if (isPost()) {
                 <div class="card">
                     <div class="card-header">
                         <h3>Criteri di Valutazione</h3>
-                        <a href="griglia-criteri.php?id=<?php echo $griglia_id; ?>" class="btn btn-primary btn-sm">Gestisci Criteri</a>
+                        <div style="display: flex; gap: 10px;">
+                            <a href="griglia-builder.php?id=<?php echo $griglia_id; ?>" class="btn btn-success btn-sm">🚀 Builder Veloce</a>
+                            <a href="griglia-criteri.php?id=<?php echo $griglia_id; ?>" class="btn btn-primary btn-sm">📝 Gestione Classica</a>
+                        </div>
                     </div>
                     <div class="card-body">
                         <?php if (empty($criteri)): ?>
