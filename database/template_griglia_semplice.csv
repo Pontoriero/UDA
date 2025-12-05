@@ -1,0 +1,16 @@
+TIPO,NOME,PESO,PUNTEGGIO,DESCRIZIONE
+CRITERIO,Conoscenze,2,,
+LIVELLO,Eccellente,,10,Conoscenze complete e approfondite
+LIVELLO,Buono,,8,Conoscenze buone con alcune lacune
+LIVELLO,Sufficiente,,6,Conoscenze essenziali
+LIVELLO,Insufficiente,,4,Conoscenze lacunose
+CRITERIO,Competenze,2,,
+LIVELLO,Eccellente,,10,Competenze eccellenti
+LIVELLO,Buono,,8,Competenze buone
+LIVELLO,Sufficiente,,6,Competenze sufficienti
+LIVELLO,Insufficiente,,4,Competenze insufficienti
+CRITERIO,Abilità,1,,
+LIVELLO,Eccellente,,10,Abilità eccellenti
+LIVELLO,Buono,,8,Abilità buone
+LIVELLO,Sufficiente,,6,Abilità sufficienti
+LIVELLO,Insufficiente,,4,Abilità insufficienti

@@ -244,6 +244,63 @@ if (isPost() && get('ajax') == '1') {
             border-radius: 5px;
             font-size: 14px;
         }
+
+        .csv-import-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .csv-import-box input[type="file"] {
+            display: none;
+        }
+
+        .btn-upload {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .csv-info {
+            flex: 1;
+        }
+
+        .csv-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        .csv-info p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .csv-templates {
+            display: flex;
+            gap: 10px;
+        }
+
+        .csv-templates a {
+            color: white;
+            text-decoration: underline;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -271,6 +328,22 @@ if (isPost() && get('ajax') == '1') {
                         <strong>Criteri: <span id="count-criteri">0</span></strong> |
                         Peso totale: <span id="peso-totale">0</span>
                     </div>
+                </div>
+
+                <!-- Import CSV -->
+                <div class="csv-import-box">
+                    <div class="csv-info">
+                        <h3>📥 Importa da CSV</h3>
+                        <p>Carica un file CSV per importare velocemente criteri e livelli</p>
+                        <div class="csv-templates">
+                            <a href="../database/template_griglia_progetto.csv" download>⬇️ Scarica Template Progetto</a>
+                            <a href="../database/template_griglia_semplice.csv" download>⬇️ Scarica Template Semplice</a>
+                        </div>
+                    </div>
+                    <label for="csv-file-input" class="btn-upload">
+                        📁 Scegli File CSV
+                    </label>
+                    <input type="file" id="csv-file-input" accept=".csv" onchange="importaCSV(event)">
                 </div>
 
                 <!-- Template Livelli Veloci -->
@@ -657,6 +730,128 @@ if (isPost() && get('ajax') == '1') {
 
     function handleDragEnd(e) {
         this.classList.remove('dragging');
+    }
+
+    // Import CSV
+    function importaCSV(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const csv = e.target.result;
+            parseCSV(csv);
+        };
+        reader.readAsText(file);
+    }
+
+    function parseCSV(csv) {
+        const lines = csv.split('\n').filter(line => line.trim());
+
+        // Salta l'header
+        const dataLines = lines.slice(1);
+
+        const criteriImportati = [];
+        let criterioCorrente = null;
+        let livelli = [];
+
+        dataLines.forEach(line => {
+            // Parse CSV considerando virgole dentro le virgolette
+            const columns = parseCSVLine(line);
+
+            const tipo = columns[0]?.trim();
+            const nome = columns[1]?.trim();
+            const peso = columns[2]?.trim();
+            const punteggio = columns[3]?.trim();
+            const descrizione = columns[4]?.trim();
+
+            if (tipo === 'CRITERIO') {
+                // Se c'era un criterio precedente, salvalo
+                if (criterioCorrente) {
+                    criterioCorrente.livelli = livelli;
+                    criteriImportati.push(criterioCorrente);
+                }
+
+                // Inizia un nuovo criterio
+                criterioCorrente = {
+                    nome: nome,
+                    peso: parseFloat(peso) || 1.0,
+                    descrizione: descrizione || '',
+                    livelli: []
+                };
+                livelli = [];
+            } else if (tipo === 'LIVELLO' && criterioCorrente) {
+                livelli.push({
+                    nome: nome,
+                    punteggio: parseFloat(punteggio) || 0,
+                    descrizione: descrizione || ''
+                });
+            }
+        });
+
+        // Aggiungi l'ultimo criterio
+        if (criterioCorrente) {
+            criterioCorrente.livelli = livelli;
+            criteriImportati.push(criterioCorrente);
+        }
+
+        // Conferma import
+        if (criteriImportati.length === 0) {
+            alert('Nessun criterio trovato nel file CSV. Verifica il formato.');
+            return;
+        }
+
+        const conferma = confirm(
+            `Trovati ${criteriImportati.length} criteri nel file CSV.\n\n` +
+            `Questo sostituirà tutti i criteri esistenti. Continuare?`
+        );
+
+        if (!conferma) return;
+
+        // Pulisci e importa
+        document.getElementById('criteri-container').innerHTML = '';
+        criteri = [];
+        criterioCounter = 0;
+
+        criteriImportati.forEach(criterio => {
+            aggiungiCriterio(criterio);
+        });
+
+        aggiornaStats();
+
+        // Mostra messaggio di successo
+        alert(`✅ Importati ${criteriImportati.length} criteri con successo!`);
+
+        // Reset input file
+        document.getElementById('csv-file-input').value = '';
+    }
+
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+
+            if (char === '"') {
+                if (inQuotes && nextChar === '"') {
+                    current += '"';
+                    i++; // Skip next quote
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                result.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+
+        result.push(current);
+        return result;
     }
     </script>
 </body>

@@ -1,0 +1,71 @@
+TIPO,NOME,PESO,PUNTEGGIO,DESCRIZIONE
+CRITERIO,Intestazione del Progetto,1,,
+LIVELLO,Base,,0.625,Manca o è incompleta
+LIVELLO,Inter.,,2.5,Parzialmente completa
+LIVELLO,Avan.,,3.75,Completa
+LIVELLO,Ecc.,,5,Completa e professionale
+CRITERIO,Breve descrizione del progetto,5,,
+LIVELLO,Base,,1.25,Descrizione confusa o fuori contesto
+LIVELLO,Inter.,,2.5,Descrizione generica e approssimativa
+LIVELLO,Avan.,,3.75,Descrizione chiara con terminologia tecnica
+LIVELLO,Ecc.,,5,Descrizione dettagliata precisa e contestualizzata
+CRITERIO,Obiettivi del progetto,5,,
+LIVELLO,Base,,1.25,Non identifica obiettivi o sono generici
+LIVELLO,Inter.,,2.5,Obiettivi approssimativi poco specifici
+LIVELLO,Avan.,,3.75,Obiettivi SMART completi
+LIVELLO,Ecc.,,5,Obiettivi SMART + prioritizzati e collegati
+CRITERIO,Stakeholders principali,1,,
+LIVELLO,Base,,0.25,Non identifica stakeholder
+LIVELLO,Inter.,,0.5,Identifica parzialmente
+LIVELLO,Avan.,,0.75,Identifica tutti
+LIVELLO,Ecc.,,1,Identifica tutti + ruoli e influenza
+CRITERIO,Attività da eseguire,5,,
+LIVELLO,Base,,1.25,Elenco incompleto o non pertinente
+LIVELLO,Inter.,,2.5,Elenco presente ma generico
+LIVELLO,Avan.,,3.75,Elenco completo e chiaro
+LIVELLO,Ecc.,,5,Elenco completo organizzato per fasi
+CRITERIO,Analisi dei rischi,3,,
+LIVELLO,Base,,0.75,Analisi assente o imprecisa
+LIVELLO,Inter.,,1.5,Rischi approssimativi senza mitigazione
+LIVELLO,Avan.,,2.25,Rischi principali completi e precisi
+LIVELLO,Ecc.,,3,Rischi + probabilità + impatto + mitigazione
+CRITERIO,Principali Deliverable,3,,
+LIVELLO,Base,,0.75,Elenco impreciso o incompleto
+LIVELLO,Inter.,,1.5,Elenco approssimativo
+LIVELLO,Avan.,,2.25,Elenco preciso e completo
+LIVELLO,Ecc.,,3,Elenco preciso + criteri verifica
+CRITERIO,Milestone,3,,
+LIVELLO,Base,,0.75,Milestone assenti o imprecise
+LIVELLO,Inter.,,1.5,Milestone generiche
+LIVELLO,Avan.,,2.25,Milestone precise e temporalizzate
+LIVELLO,Ecc.,,3,Milestone + deliverable + criteri verifica
+CRITERIO,Principali risorse,3,,
+LIVELLO,Base,,0.75,Descrizione confusa o incompleta
+LIVELLO,Inter.,,1.5,Descrizione approssimativa
+LIVELLO,Avan.,,2.25,Descrizione completa (umane tech econ)
+LIVELLO,Ecc.,,3,Descrizione completa + allocazione temporale
+CRITERIO,Tempistica preliminare (Gantt),4,,
+LIVELLO,Base,,1,Gantt assente o scorretto
+LIVELLO,Inter.,,2,Gantt incompleto
+LIVELLO,Avan.,,3,Gantt corretto e completo
+LIVELLO,Ecc.,,4,Gantt professionale + dipendenze + critico
+CRITERIO,Autorizzazioni,1,,
+LIVELLO,Base,,0.25,Nessuna autorizzazione
+LIVELLO,Inter.,,0.5,Autorizzazioni parziali
+LIVELLO,Avan.,,0.75,Autorizzazioni appropriate
+LIVELLO,Ecc.,,1,Autorizzazioni + responsabili + processi
+CRITERIO,WBS (Work Breakdown Structure),4,,
+LIVELLO,Base,,1,WBS assente o illogica
+LIVELLO,Inter.,,2,WBS incompleta
+LIVELLO,Avan.,,3,WBS corretta e completa
+LIVELLO,Ecc.,,4,WBS professionale + PDM + codifica
+CRITERIO,Consegna files,5,,
+LIVELLO,Base,,1.25,File essenziali mancanti
+LIVELLO,Inter.,,2.5,Consegna parziale
+LIVELLO,Avan.,,3.75,Consegna completa
+LIVELLO,Ecc.,,5,Consegna completa + organizzazione professionale
+CRITERIO,Rispetto dei tempi,5,,
+LIVELLO,Base,,1.25,Consegna oltre 3 giorni di ritardo
+LIVELLO,Inter.,,2.5,Consegna in ritardo (1-3 giorni)
+LIVELLO,Avan.,,3.75,Consegna puntuale
+LIVELLO,Ecc.,,5,Consegna anticipata o con feedback richiesto
