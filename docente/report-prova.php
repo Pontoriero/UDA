@@ -122,6 +122,59 @@ foreach ($statistiche_criteri as &$stat) {
     $stat['max'] = max($punteggi);
     $stat['min'] = min($punteggi);
 }
+
+// Export Excel
+$export = get('export', '');
+if ($export === 'excel' && !empty($risultati)) {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="report_' . sanitizeFilename($prova['nome']) . '_' . date('Y-m-d') . '.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $output = fopen('php://output', 'w');
+
+    // BOM per UTF-8
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+    // Intestazione
+    $header = ['Cognome', 'Nome'];
+    foreach ($criteri as $crit) {
+        $header[] = $crit['nome'];
+    }
+    $header[] = 'Media Ponderata';
+
+    fputcsv($output, $header, ';');
+
+    // Dati studenti
+    foreach ($risultati as $ris) {
+        $row = [
+            $ris['studente']['cognome'],
+            $ris['studente']['nome']
+        ];
+
+        foreach ($criteri as $crit) {
+            $row[] = isset($ris['voti_criteri'][$crit['id']]) ?
+                     number_format($ris['voti_criteri'][$crit['id']], 2, ',', '') : '-';
+        }
+
+        $row[] = number_format($ris['voto_medio'], 2, ',', '');
+
+        fputcsv($output, $row, ';');
+    }
+
+    // Riga vuota
+    fputcsv($output, [], ';');
+
+    // Statistiche
+    fputcsv($output, ['STATISTICHE'], ';');
+    fputcsv($output, ['Media Classe', number_format($media_classe, 2, ',', '')], ';');
+    fputcsv($output, ['Voto Massimo', number_format($voto_max, 2, ',', '')], ';');
+    fputcsv($output, ['Voto Minimo', number_format($voto_min, 2, ',', '')], ';');
+    fputcsv($output, ['Mediana', number_format($mediana, 2, ',', '')], ';');
+
+    fclose($output);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -241,6 +294,7 @@ foreach ($statistiche_criteri as &$stat) {
                 <h1>📊 Report: <?php echo e($prova['nome']); ?></h1>
                 <div class="topbar-actions">
                     <a href="prove.php" class="btn btn-secondary btn-sm">← Torna alle Prove</a>
+                    <a href="?prova_id=<?php echo $prova_id; ?>&export=excel" class="btn btn-success btn-sm">📥 Esporta Excel</a>
                     <button onclick="window.print()" class="btn btn-primary btn-sm">🖨️ Stampa</button>
                     <a href="../public/logout.php" class="btn btn-secondary btn-sm">Logout</a>
                 </div>

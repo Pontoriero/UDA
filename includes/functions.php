@@ -124,4 +124,19 @@ function post($key, $default = null) {
 function get($key, $default = null) {
     return isset($_GET[$key]) ? sanitizeInput($_GET[$key]) : $default;
 }
+
+/**
+ * Sanitizza un nome file per l'export
+ */
+function sanitizeFilename($filename) {
+    // Rimuove caratteri non validi per i nomi file
+    $filename = preg_replace('/[^a-zA-Z0-9_\-àèéìòù ]/', '', $filename);
+    // Sostituisce spazi multipli con uno solo
+    $filename = preg_replace('/\s+/', '_', $filename);
+    // Rimuove underscore multipli
+    $filename = preg_replace('/_+/', '_', $filename);
+    // Trim underscore iniziali e finali
+    $filename = trim($filename, '_');
+    return $filename;
+}
 ?>
