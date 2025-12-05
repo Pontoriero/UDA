@@ -30,6 +30,12 @@ if (isPost()) {
     } else {
         if (login($username, $password)) {
             $ruolo = getCurrentUserRole();
+
+            // Se è uno studente al primo accesso, reindirizza al cambio password
+            if ($ruolo === 'studente' && isPrimoAccesso()) {
+                redirect(BASE_URL . '/studente/cambio-password.php');
+            }
+
             switch ($ruolo) {
                 case 'admin':
                     redirect(BASE_URL . '/admin/index.php');

@@ -30,8 +30,10 @@ if (isPost()) {
 
         if (empty($errors)) {
             try {
-                $stmt = $db->prepare("INSERT INTO utenti (username, password, nome, cognome, email, classe, ruolo) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$username, hashPassword($password), $nome, $cognome, $email, $classe, $ruolo]);
+                // Gli studenti devono cambiare password al primo accesso
+                $primo_accesso = ($ruolo === 'studente') ? 1 : 0;
+                $stmt = $db->prepare("INSERT INTO utenti (username, password, nome, cognome, email, classe, ruolo, primo_accesso) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$username, hashPassword($password), $nome, $cognome, $email, $classe, $ruolo, $primo_accesso]);
                 setSuccessMessage('Utente creato con successo');
                 redirect('utenti.php');
             } catch (PDOException $e) {

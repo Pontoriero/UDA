@@ -47,7 +47,7 @@ function login($username, $password) {
     $db = getDB();
 
     try {
-        $stmt = $db->prepare("SELECT id, username, password, nome, cognome, email, ruolo, attivo FROM utenti WHERE username = ? AND attivo = 1");
+        $stmt = $db->prepare("SELECT id, username, password, nome, cognome, email, ruolo, attivo, primo_accesso FROM utenti WHERE username = ? AND attivo = 1");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
@@ -59,6 +59,7 @@ function login($username, $password) {
             $_SESSION['user_cognome'] = $user['cognome'];
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_ruolo'] = $user['ruolo'];
+            $_SESSION['primo_accesso'] = $user['primo_accesso'];
             $_SESSION['login_time'] = time();
 
             return true;
@@ -123,5 +124,27 @@ function checkSessionTimeout() {
         $_SESSION['login_time'] = time();
     }
     return true;
+}
+
+/**
+ * Verifica se è il primo accesso dell'utente
+ */
+function isPrimoAccesso() {
+    return isset($_SESSION['primo_accesso']) && $_SESSION['primo_accesso'] == 1;
+}
+
+/**
+ * Controlla se l'utente deve cambiare password e reindirizza se necessario
+ * Da chiamare nelle pagine protette degli studenti
+ */
+function checkCambioPasswordObbligatorio() {
+    if (isLoggedIn() && isPrimoAccesso() && getCurrentUserRole() === 'studente') {
+        // Permetti accesso solo alla pagina di cambio password e logout
+        $current_page = basename($_SERVER['PHP_SELF']);
+        if ($current_page !== 'cambio-password.php') {
+            header('Location: cambio-password.php');
+            exit;
+        }
+    }
 }
 ?>
