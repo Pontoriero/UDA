@@ -471,5 +471,6 @@ foreach ($statistiche_criteri as $criterio_id => &$stat) {
             </div>
         </div>
     </div>
+    <?php include __DIR__ . '/../includes/footer-scripts.php'; ?>
 </body>
 </html>

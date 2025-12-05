@@ -273,5 +273,6 @@ if (isPost() && $studente_id) {
             <?php endif; ?>
         </div>
     </div>
+    <?php include __DIR__ . '/../includes/footer-scripts.php'; ?>
 </body>
 </html>

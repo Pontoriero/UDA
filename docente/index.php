@@ -136,5 +136,6 @@ $prove_recenti = $stmt->fetchAll();
             </div>
         </div>
     </div>
+    <?php include __DIR__ . '/../includes/footer-scripts.php'; ?>
 </body>
 </html>

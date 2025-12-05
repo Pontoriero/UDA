@@ -18,6 +18,7 @@ if (isPost()) {
         $nome = post('nome');
         $cognome = post('cognome');
         $email = post('email');
+        $classe = post('classe');
         $ruolo = post('ruolo');
 
         $errors = [];
@@ -29,8 +30,8 @@ if (isPost()) {
 
         if (empty($errors)) {
             try {
-                $stmt = $db->prepare("INSERT INTO utenti (username, password, nome, cognome, email, ruolo) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$username, hashPassword($password), $nome, $cognome, $email, $ruolo]);
+                $stmt = $db->prepare("INSERT INTO utenti (username, password, nome, cognome, email, classe, ruolo) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$username, hashPassword($password), $nome, $cognome, $email, $classe, $ruolo]);
                 setSuccessMessage('Utente creato con successo');
                 redirect('utenti.php');
             } catch (PDOException $e) {
@@ -102,6 +103,7 @@ $utenti = $stmt->fetchAll();
                                     <th>Username</th>
                                     <th>Nome Completo</th>
                                     <th>Email</th>
+                                    <th>Classe</th>
                                     <th>Ruolo</th>
                                     <th>Stato</th>
                                     <th>Data Creazione</th>
@@ -115,6 +117,13 @@ $utenti = $stmt->fetchAll();
                                         <td><strong><?php echo e($utente['username']); ?></strong></td>
                                         <td><?php echo e($utente['nome'] . ' ' . $utente['cognome']); ?></td>
                                         <td><?php echo e($utente['email']); ?></td>
+                                        <td>
+                                            <?php if ($utente['classe'] && $utente['ruolo'] === 'studente'): ?>
+                                                <span class="badge badge-info"><?php echo e($utente['classe']); ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php
                                             $badge_class = $utente['ruolo'] === 'admin' ? 'danger' : ($utente['ruolo'] === 'docente' ? 'primary' : 'success');
@@ -181,6 +190,11 @@ $utenti = $stmt->fetchAll();
                         <input type="email" id="email" name="email" class="form-control" required>
                     </div>
                     <div class="form-group">
+                        <label for="classe">Classe (solo per studenti)</label>
+                        <input type="text" id="classe" name="classe" class="form-control" placeholder="es. 5A, 3B, ecc.">
+                        <small class="text-muted">Lascia vuoto per docenti e admin</small>
+                    </div>
+                    <div class="form-group">
                         <label for="ruolo">Ruolo *</label>
                         <select id="ruolo" name="ruolo" class="form-control" required>
                             <option value="studente">Studente</option>
@@ -196,5 +210,6 @@ $utenti = $stmt->fetchAll();
             </form>
         </div>
     </div>
+    <?php include __DIR__ . '/../includes/footer-scripts.php'; ?>
 </body>
 </html>

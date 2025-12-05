@@ -854,5 +854,6 @@ if (isPost() && get('ajax') == '1') {
         return result;
     }
     </script>
+    <?php include __DIR__ . '/../includes/footer-scripts.php'; ?>
 </body>
 </html>

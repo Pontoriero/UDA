@@ -190,5 +190,6 @@ $voto_medio = $somma_pesi > 0 ? $somma_punteggi_ponderati / $somma_pesi : 0;
             <?php endif; ?>
         </div>
     </div>
+    <?php include __DIR__ . '/../includes/footer-scripts.php'; ?>
 </body>
 </html>
