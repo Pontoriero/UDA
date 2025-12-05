@@ -113,7 +113,12 @@ $prove = $stmt->fetchAll();
                                             <td><?php echo $prova['num_studenti']; ?></td>
                                             <td><?php echo formatDate($prova['data_creazione']); ?></td>
                                             <td>
-                                                <a href="valuta.php?prova_id=<?php echo $prova['id']; ?>" class="btn btn-primary btn-sm">Valuta Studenti</a>
+                                                <div style="display: flex; gap: 5px;">
+                                                    <a href="valuta.php?prova_id=<?php echo $prova['id']; ?>" class="btn btn-primary btn-sm">Valuta</a>
+                                                    <?php if ($prova['num_studenti'] > 0): ?>
+                                                        <a href="report-prova.php?prova_id=<?php echo $prova['id']; ?>" class="btn btn-success btn-sm">📊 Report</a>
+                                                    <?php endif; ?>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
