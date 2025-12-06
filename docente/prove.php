@@ -9,28 +9,75 @@ requireRole('docente');
 $db = getDB();
 $docente_id = getCurrentUserId();
 
-// Gestione creazione prova
+// Gestione creazione/modifica/eliminazione prova
 if (isPost()) {
-    $nome = post('nome');
-    $descrizione = post('descrizione');
-    $griglia_id = post('griglia_id');
-    $data_prova = post('data_prova');
+    $azione = post('azione', 'aggiungi');
 
-    $errors = [];
-    if (empty($nome)) $errors[] = 'Il nome è obbligatorio';
-    if (empty($griglia_id)) $errors[] = 'Seleziona una griglia';
+    if ($azione === 'aggiungi') {
+        $nome = post('nome');
+        $descrizione = post('descrizione');
+        $griglia_id = post('griglia_id');
+        $data_prova = post('data_prova');
 
-    if (empty($errors)) {
+        $errors = [];
+        if (empty($nome)) $errors[] = 'Il nome è obbligatorio';
+        if (empty($griglia_id)) $errors[] = 'Seleziona una griglia';
+
+        if (empty($errors)) {
+            try {
+                $stmt = $db->prepare("INSERT INTO prove (nome, descrizione, griglia_id, data_prova, docente_id) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$nome, $descrizione, $griglia_id, $data_prova, $docente_id]);
+                setSuccessMessage('Prova creata con successo');
+                redirect('prove.php');
+            } catch (Exception $e) {
+                setErrorMessage('Errore: ' . $e->getMessage());
+            }
+        } else {
+            setErrorMessage(implode('<br>', $errors));
+        }
+    }
+    elseif ($azione === 'modifica') {
+        $prova_id = post('prova_id');
+        $nome = post('nome');
+        $descrizione = post('descrizione');
+        $griglia_id = post('griglia_id');
+        $data_prova = post('data_prova');
+
+        $errors = [];
+        if (empty($nome)) $errors[] = 'Il nome è obbligatorio';
+        if (empty($griglia_id)) $errors[] = 'Seleziona una griglia';
+
+        if (empty($errors)) {
+            try {
+                // Verifica che la prova appartenga al docente
+                $stmt = $db->prepare("UPDATE prove SET nome = ?, descrizione = ?, griglia_id = ?, data_prova = ? WHERE id = ? AND docente_id = ?");
+                $stmt->execute([$nome, $descrizione, $griglia_id, $data_prova, $prova_id, $docente_id]);
+                setSuccessMessage('Prova modificata con successo');
+                redirect('prove.php');
+            } catch (Exception $e) {
+                setErrorMessage('Errore: ' . $e->getMessage());
+            }
+        } else {
+            setErrorMessage(implode('<br>', $errors));
+        }
+    }
+    elseif ($azione === 'elimina') {
+        $prova_id = post('prova_id');
+
         try {
-            $stmt = $db->prepare("INSERT INTO prove (nome, descrizione, griglia_id, data_prova, docente_id) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$nome, $descrizione, $griglia_id, $data_prova, $docente_id]);
-            setSuccessMessage('Prova creata con successo');
+            // Elimina prima le valutazioni associate
+            $stmt = $db->prepare("DELETE FROM valutazioni WHERE prova_id = ?");
+            $stmt->execute([$prova_id]);
+
+            // Poi elimina la prova (solo se appartiene al docente)
+            $stmt = $db->prepare("DELETE FROM prove WHERE id = ? AND docente_id = ?");
+            $stmt->execute([$prova_id, $docente_id]);
+
+            setSuccessMessage('Prova eliminata con successo');
             redirect('prove.php');
         } catch (Exception $e) {
-            setErrorMessage('Errore: ' . $e->getMessage());
+            setErrorMessage('Errore durante l\'eliminazione: ' . $e->getMessage());
         }
-    } else {
-        setErrorMessage(implode('<br>', $errors));
     }
 }
 
@@ -113,11 +160,17 @@ $prove = $stmt->fetchAll();
                                             <td><?php echo $prova['num_studenti']; ?></td>
                                             <td><?php echo formatDate($prova['data_creazione']); ?></td>
                                             <td>
-                                                <div style="display: flex; gap: 5px;">
-                                                    <a href="valuta.php?prova_id=<?php echo $prova['id']; ?>" class="btn btn-primary btn-sm">Valuta</a>
+                                                <div class="table-actions">
+                                                    <a href="valuta.php?prova_id=<?php echo $prova['id']; ?>" class="btn btn-primary btn-sm">📝 Valuta</a>
                                                     <?php if ($prova['num_studenti'] > 0): ?>
                                                         <a href="report-prova.php?prova_id=<?php echo $prova['id']; ?>" class="btn btn-success btn-sm">📊 Report</a>
                                                     <?php endif; ?>
+                                                    <button onclick="modificaProva(<?php echo htmlspecialchars(json_encode($prova), ENT_QUOTES, 'UTF-8'); ?>)" class="btn btn-warning btn-sm">✏️ Modifica</button>
+                                                    <form method="POST" action="" style="display: inline;">
+                                                        <input type="hidden" name="azione" value="elimina">
+                                                        <input type="hidden" name="prova_id" value="<?php echo $prova['id']; ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Eliminare questa prova? Tutte le valutazioni associate verranno perse!')">🗑️ Elimina</button>
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -139,6 +192,7 @@ $prove = $stmt->fetchAll();
                 <button class="modal-close" onclick="document.getElementById('modalNuovaProva').classList.remove('active')">&times;</button>
             </div>
             <form method="POST" action="">
+                <input type="hidden" name="azione" value="aggiungi">
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="nome">Nome Prova *</label>
@@ -176,6 +230,73 @@ $prove = $stmt->fetchAll();
             </form>
         </div>
     </div>
+
+    <!-- Modal Modifica Prova -->
+    <div id="modalModificaProva" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifica Prova</h3>
+                <button class="modal-close" onclick="document.getElementById('modalModificaProva').classList.remove('active')">&times;</button>
+            </div>
+            <form method="POST" action="">
+                <input type="hidden" name="azione" value="modifica">
+                <input type="hidden" name="prova_id" id="edit_prova_id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="edit_nome">Nome Prova *</label>
+                        <input type="text" id="edit_nome" name="nome" class="form-control" required
+                               placeholder="es. Verifica Unità 1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_griglia_id">Griglia di Valutazione *</label>
+                        <select id="edit_griglia_id" name="griglia_id" class="form-control" required>
+                            <option value="">Seleziona una griglia...</option>
+                            <?php foreach ($griglie as $griglia): ?>
+                                <option value="<?php echo $griglia['id']; ?>">
+                                    <?php echo e($griglia['nome'] . ' - ' . $griglia['materia']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_data_prova">Data Prova</label>
+                        <input type="date" id="edit_data_prova" name="data_prova" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_descrizione">Descrizione</label>
+                        <textarea id="edit_descrizione" name="descrizione" class="form-control" rows="3"
+                                  placeholder="Descrizione della prova o dell'UDA"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalModificaProva').classList.remove('active')">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function modificaProva(prova) {
+            document.getElementById('edit_prova_id').value = prova.id;
+            document.getElementById('edit_nome').value = prova.nome;
+            document.getElementById('edit_griglia_id').value = prova.griglia_id;
+            document.getElementById('edit_data_prova').value = prova.data_prova || '';
+            document.getElementById('edit_descrizione').value = prova.descrizione || '';
+            document.getElementById('modalModificaProva').classList.add('active');
+        }
+
+        // Chiudi modal su click overlay
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+    </script>
+
     <?php include __DIR__ . '/../includes/footer-scripts.php'; ?>
 </body>
 </html>

@@ -42,8 +42,20 @@ foreach ($criteri as &$criterio) {
     $criterio['livelli'] = $stmt->fetchAll();
 }
 
-// Carica studenti
-$stmt = $db->query("SELECT id, username, nome, cognome FROM utenti WHERE ruolo = 'studente' AND attivo = 1 ORDER BY cognome, nome");
+// Filtro classe
+$classe_selezionata = get('classe', '');
+
+// Carica classi disponibili
+$stmt = $db->query("SELECT DISTINCT classe FROM utenti WHERE ruolo = 'studente' AND attivo = 1 AND classe IS NOT NULL AND classe != '' ORDER BY classe");
+$classi = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Carica studenti (filtrati per classe se selezionata)
+if (!empty($classe_selezionata)) {
+    $stmt = $db->prepare("SELECT id, username, nome, cognome, classe FROM utenti WHERE ruolo = 'studente' AND attivo = 1 AND classe = ? ORDER BY cognome, nome");
+    $stmt->execute([$classe_selezionata]);
+} else {
+    $stmt = $db->query("SELECT id, username, nome, cognome, classe FROM utenti WHERE ruolo = 'studente' AND attivo = 1 ORDER BY cognome, nome");
+}
 $studenti = $stmt->fetchAll();
 
 // Se uno studente è selezionato, carica le sue valutazioni
@@ -87,7 +99,11 @@ if (isPost() && $studente_id) {
 
         $db->commit();
         setSuccessMessage('Valutazione salvata con successo');
-        redirect('valuta.php?prova_id=' . $prova_id . '&studente_id=' . $studente_id);
+        $redirect_url = 'valuta.php?prova_id=' . $prova_id . '&studente_id=' . $studente_id;
+        if (!empty($classe_selezionata)) {
+            $redirect_url .= '&classe=' . urlencode($classe_selezionata);
+        }
+        redirect($redirect_url);
     } catch (Exception $e) {
         $db->rollBack();
         setErrorMessage('Errore durante il salvataggio: ' . $e->getMessage());
@@ -185,19 +201,55 @@ if (isPost() && $studente_id) {
             <div class="card">
                 <div class="card-header">
                     <h3>Seleziona Studente</h3>
+                    <span class="text-muted"><?php echo count($studenti); ?> studenti</span>
                 </div>
                 <div class="card-body">
-                    <div class="studente-list">
-                        <?php foreach ($studenti as $studente): ?>
-                            <a href="valuta.php?prova_id=<?php echo $prova_id; ?>&studente_id=<?php echo $studente['id']; ?>"
-                               class="studente-card <?php echo ($studente_id == $studente['id']) ? 'selected' : ''; ?>"
-                               style="text-decoration: none; color: inherit;">
-                                <strong><?php echo e($studente['cognome'] . ' ' . $studente['nome']); ?></strong>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php if (!empty($classi)): ?>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="filtro_classe">🎓 Filtra per Classe:</label>
+                            <select id="filtro_classe" class="form-control" onchange="filtroClasse(this.value)">
+                                <option value="">Tutte le classi</option>
+                                <?php foreach ($classi as $classe): ?>
+                                    <option value="<?php echo e($classe); ?>" <?php echo ($classe_selezionata === $classe) ? 'selected' : ''; ?>>
+                                        Classe <?php echo e($classe); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (empty($studenti)): ?>
+                        <p class="text-muted text-center">Nessuno studente trovato<?php echo $classe_selezionata ? ' nella classe ' . e($classe_selezionata) : ''; ?>.</p>
+                    <?php else: ?>
+                        <div class="studente-list">
+                            <?php foreach ($studenti as $studente): ?>
+                                <a href="valuta.php?prova_id=<?php echo $prova_id; ?>&studente_id=<?php echo $studente['id']; ?><?php echo $classe_selezionata ? '&classe=' . urlencode($classe_selezionata) : ''; ?>"
+                                   class="studente-card <?php echo ($studente_id == $studente['id']) ? 'selected' : ''; ?>"
+                                   style="text-decoration: none; color: inherit;">
+                                    <strong><?php echo e($studente['cognome'] . ' ' . $studente['nome']); ?></strong>
+                                    <?php if (!empty($studente['classe'])): ?>
+                                        <br><small class="badge badge-info"><?php echo e($studente['classe']); ?></small>
+                                    <?php endif; ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
+
+            <script>
+                function filtroClasse(classe) {
+                    const url = new URL(window.location.href);
+                    if (classe) {
+                        url.searchParams.set('classe', classe);
+                    } else {
+                        url.searchParams.delete('classe');
+                    }
+                    // Rimuovi studente_id quando cambia classe
+                    url.searchParams.delete('studente_id');
+                    window.location.href = url.toString();
+                }
+            </script>
 
             <?php if ($studente_id): ?>
                 <?php
