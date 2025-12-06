@@ -16,26 +16,10 @@ $classe_selezionata = get('classe', '');
 $stmt = $db->query("SELECT DISTINCT classe FROM utenti WHERE ruolo = 'studente' AND attivo = 1 AND classe IS NOT NULL AND classe != '' ORDER BY classe");
 $classi = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Carica studenti con statistiche (filtrati per classe se selezionata)
-$sql = "
-    SELECT u.id, u.username, u.nome, u.cognome, u.email, u.classe,
-    (SELECT COUNT(DISTINCT v.prova_id)
-     FROM valutazioni v
-     JOIN prove p ON v.prova_id = p.id
-     WHERE v.studente_id = u.id AND p.docente_id = ?) as num_prove,
-    (SELECT AVG(
-        (SELECT SUM(v2.punteggio * c.peso) / SUM(c.peso)
-         FROM valutazioni v2
-         JOIN criteri c ON v2.criterio_id = c.id
-         WHERE v2.prova_id = v.prova_id AND v2.studente_id = v.studente_id)
-     )
-     FROM (SELECT DISTINCT prova_id, studente_id
-           FROM valutazioni v
-           JOIN prove p ON v.prova_id = p.id
-           WHERE v.studente_id = u.id AND p.docente_id = ?) v
-    ) as media
-    FROM utenti u
-    WHERE u.ruolo = 'studente' AND u.attivo = 1";
+// Carica studenti (filtrati per classe se selezionata)
+$sql = "SELECT u.id, u.username, u.nome, u.cognome, u.email, u.classe
+        FROM utenti u
+        WHERE u.ruolo = 'studente' AND u.attivo = 1";
 
 if (!empty($classe_selezionata)) {
     $sql .= " AND u.classe = ?";
@@ -45,11 +29,56 @@ $sql .= " ORDER BY u.cognome, u.nome";
 
 $stmt = $db->prepare($sql);
 if (!empty($classe_selezionata)) {
-    $stmt->execute([$docente_id, $docente_id, $classe_selezionata]);
+    $stmt->execute([$classe_selezionata]);
 } else {
-    $stmt->execute([$docente_id, $docente_id]);
+    $stmt->execute();
 }
 $studenti = $stmt->fetchAll();
+
+// Calcola statistiche per ogni studente
+foreach ($studenti as &$studente) {
+    // Conta prove valutate
+    $stmt = $db->prepare("
+        SELECT COUNT(DISTINCT v.prova_id) as num_prove
+        FROM valutazioni v
+        JOIN prove p ON v.prova_id = p.id
+        WHERE v.studente_id = ? AND p.docente_id = ?
+    ");
+    $stmt->execute([$studente['id'], $docente_id]);
+    $result = $stmt->fetch();
+    $studente['num_prove'] = $result['num_prove'] ?? 0;
+
+    // Calcola media generale
+    if ($studente['num_prove'] > 0) {
+        $stmt = $db->prepare("
+            SELECT DISTINCT v.prova_id
+            FROM valutazioni v
+            JOIN prove p ON v.prova_id = p.id
+            WHERE v.studente_id = ? AND p.docente_id = ?
+        ");
+        $stmt->execute([$studente['id'], $docente_id]);
+        $prove = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $voti_prove = [];
+        foreach ($prove as $prova_id) {
+            $stmt = $db->prepare("
+                SELECT SUM(v.punteggio * c.peso) / SUM(c.peso) as voto
+                FROM valutazioni v
+                JOIN criteri c ON v.criterio_id = c.id
+                WHERE v.prova_id = ? AND v.studente_id = ?
+            ");
+            $stmt->execute([$prova_id, $studente['id']]);
+            $result = $stmt->fetch();
+            if ($result && $result['voto']) {
+                $voti_prove[] = $result['voto'];
+            }
+        }
+
+        $studente['media'] = !empty($voti_prove) ? array_sum($voti_prove) / count($voti_prove) : null;
+    } else {
+        $studente['media'] = null;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="it">
