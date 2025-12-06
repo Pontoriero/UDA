@@ -9,6 +9,9 @@ requireRole('docente');
 $db = getDB();
 $docente_id = getCurrentUserId();
 
+// Filtro UDA
+$uda_filter = get('uda_id', '');
+
 // Gestione creazione/modifica/eliminazione prova
 if (isPost()) {
     $azione = post('azione', 'aggiungi');
@@ -17,6 +20,7 @@ if (isPost()) {
         $nome = post('nome');
         $descrizione = post('descrizione');
         $griglia_id = post('griglia_id');
+        $uda_id = post('uda_id');
         $data_prova = post('data_prova');
 
         $errors = [];
@@ -25,10 +29,14 @@ if (isPost()) {
 
         if (empty($errors)) {
             try {
-                $stmt = $db->prepare("INSERT INTO prove (nome, descrizione, griglia_id, data_prova, docente_id) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$nome, $descrizione, $griglia_id, $data_prova, $docente_id]);
+                $stmt = $db->prepare("INSERT INTO prove (nome, descrizione, griglia_id, uda_id, data_prova, docente_id) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$nome, $descrizione, $griglia_id, $uda_id ?: null, $data_prova, $docente_id]);
                 setSuccessMessage('Prova creata con successo');
-                redirect('prove.php');
+                $redirect_url = 'prove.php';
+                if ($uda_id) {
+                    $redirect_url .= '?uda_id=' . $uda_id;
+                }
+                redirect($redirect_url);
             } catch (Exception $e) {
                 setErrorMessage('Errore: ' . $e->getMessage());
             }
@@ -41,6 +49,7 @@ if (isPost()) {
         $nome = post('nome');
         $descrizione = post('descrizione');
         $griglia_id = post('griglia_id');
+        $uda_id = post('uda_id');
         $data_prova = post('data_prova');
 
         $errors = [];
@@ -49,11 +58,14 @@ if (isPost()) {
 
         if (empty($errors)) {
             try {
-                // Verifica che la prova appartenga al docente
-                $stmt = $db->prepare("UPDATE prove SET nome = ?, descrizione = ?, griglia_id = ?, data_prova = ? WHERE id = ? AND docente_id = ?");
-                $stmt->execute([$nome, $descrizione, $griglia_id, $data_prova, $prova_id, $docente_id]);
+                $stmt = $db->prepare("UPDATE prove SET nome = ?, descrizione = ?, griglia_id = ?, uda_id = ?, data_prova = ? WHERE id = ? AND docente_id = ?");
+                $stmt->execute([$nome, $descrizione, $griglia_id, $uda_id ?: null, $data_prova, $prova_id, $docente_id]);
                 setSuccessMessage('Prova modificata con successo');
-                redirect('prove.php');
+                $redirect_url = 'prove.php';
+                if ($uda_filter) {
+                    $redirect_url .= '?uda_id=' . $uda_filter;
+                }
+                redirect($redirect_url);
             } catch (Exception $e) {
                 setErrorMessage('Errore: ' . $e->getMessage());
             }
@@ -85,16 +97,40 @@ if (isPost()) {
 $stmt = $db->query("SELECT * FROM griglie WHERE attiva = 1 ORDER BY nome");
 $griglie = $stmt->fetchAll();
 
-// Carica prove del docente
-$stmt = $db->prepare("
-    SELECT p.*, g.nome as griglia_nome,
+// Carica UDA attive del docente
+$stmt = $db->prepare("SELECT * FROM uda WHERE docente_id = ? AND attivo = 1 ORDER BY nome");
+$stmt->execute([$docente_id]);
+$uda_list = $stmt->fetchAll();
+
+// Carica informazioni UDA selezionata se filtro attivo
+$uda_selezionata = null;
+if ($uda_filter) {
+    $stmt = $db->prepare("SELECT * FROM uda WHERE id = ? AND docente_id = ?");
+    $stmt->execute([$uda_filter, $docente_id]);
+    $uda_selezionata = $stmt->fetch();
+}
+
+// Carica prove del docente (filtrate per UDA se necessario)
+$sql = "
+    SELECT p.*, g.nome as griglia_nome, u.nome as uda_nome,
     (SELECT COUNT(DISTINCT studente_id) FROM valutazioni WHERE prova_id = p.id) as num_studenti
     FROM prove p
     JOIN griglie g ON p.griglia_id = g.id
-    WHERE p.docente_id = ?
-    ORDER BY p.data_creazione DESC
-");
-$stmt->execute([$docente_id]);
+    LEFT JOIN uda u ON p.uda_id = u.id
+    WHERE p.docente_id = ?";
+
+if ($uda_filter) {
+    $sql .= " AND p.uda_id = ?";
+}
+
+$sql .= " ORDER BY p.data_creazione DESC";
+
+$stmt = $db->prepare($sql);
+if ($uda_filter) {
+    $stmt->execute([$docente_id, $uda_filter]);
+} else {
+    $stmt->execute([$docente_id]);
+}
 $prove = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -111,8 +147,19 @@ $prove = $stmt->fetchAll();
 
         <div class="main-content">
             <div class="topbar">
-                <h1>Le Mie Prove</h1>
+                <h1>
+                    <?php if ($uda_selezionata): ?>
+                        📚 Prove UDA: <?php echo e($uda_selezionata['nome']); ?>
+                    <?php else: ?>
+                        Le Mie Prove
+                    <?php endif; ?>
+                </h1>
                 <div class="topbar-actions">
+                    <?php if ($uda_filter): ?>
+                        <a href="prove.php" class="btn btn-secondary btn-sm">← Tutte le Prove</a>
+                    <?php else: ?>
+                        <a href="uda.php" class="btn btn-secondary btn-sm">📚 Gestisci UDA</a>
+                    <?php endif; ?>
                     <button onclick="document.getElementById('modalNuovaProva').classList.add('active')" class="btn btn-primary">+ Nuova Prova</button>
                     <div class="user-info">
                         <div class="user-avatar"><?php echo strtoupper(substr(getCurrentUserFullName(), 0, 1)); ?></div>
@@ -132,8 +179,25 @@ $prove = $stmt->fetchAll();
             <div class="card">
                 <div class="card-header">
                     <h3>Elenco Prove</h3>
+                    <span class="text-muted"><?php echo count($prove); ?> prove</span>
                 </div>
                 <div class="card-body">
+                    <?php if (!$uda_filter && !empty($uda_list)): ?>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="filtro_uda">📚 Filtra per UDA:</label>
+                            <select id="filtro_uda" class="form-control" onchange="filtroUda(this.value)">
+                                <option value="">Tutte le prove</option>
+                                <?php foreach ($uda_list as $uda): ?>
+                                    <option value="<?php echo $uda['id']; ?>">
+                                        <?php echo e($uda['nome']); ?>
+                                        <?php if ($uda['anno_scolastico']): ?>
+                                            (<?php echo e($uda['anno_scolastico']); ?>)
+                                        <?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
                     <?php if (empty($prove)): ?>
                         <p class="text-muted">Nessuna prova creata. Clicca su "Nuova Prova" per iniziare.</p>
                     <?php else: ?>
@@ -143,10 +207,12 @@ $prove = $stmt->fetchAll();
                                     <tr>
                                         <th>ID</th>
                                         <th>Nome Prova</th>
-                                        <th>Griglia Utilizzata</th>
+                                        <?php if (!$uda_filter): ?>
+                                            <th>UDA</th>
+                                        <?php endif; ?>
+                                        <th>Griglia</th>
                                         <th>Data Prova</th>
-                                        <th>Studenti Valutati</th>
-                                        <th>Data Creazione</th>
+                                        <th>Studenti</th>
                                         <th>Azioni</th>
                                     </tr>
                                 </thead>
@@ -155,10 +221,18 @@ $prove = $stmt->fetchAll();
                                         <tr>
                                             <td><?php echo $prova['id']; ?></td>
                                             <td><strong><?php echo e($prova['nome']); ?></strong></td>
+                                            <?php if (!$uda_filter): ?>
+                                                <td>
+                                                    <?php if ($prova['uda_nome']): ?>
+                                                        <span class="badge badge-info"><?php echo e($prova['uda_nome']); ?></span>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">-</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            <?php endif; ?>
                                             <td><?php echo e($prova['griglia_nome']); ?></td>
                                             <td><?php echo formatDate($prova['data_prova']); ?></td>
                                             <td><?php echo $prova['num_studenti']; ?></td>
-                                            <td><?php echo formatDate($prova['data_creazione']); ?></td>
                                             <td>
                                                 <div class="table-actions">
                                                     <a href="valuta.php?prova_id=<?php echo $prova['id']; ?>" class="btn btn-primary btn-sm">📝 Valuta</a>
@@ -200,6 +274,24 @@ $prove = $stmt->fetchAll();
                                placeholder="es. Verifica Unità 1">
                     </div>
 
+                    <?php if (!empty($uda_list)): ?>
+                        <div class="form-group">
+                            <label for="uda_id">📚 UDA (Facoltativo)</label>
+                            <select id="uda_id" name="uda_id" class="form-control">
+                                <option value="">Nessuna UDA (prova indipendente)</option>
+                                <?php foreach ($uda_list as $uda): ?>
+                                    <option value="<?php echo $uda['id']; ?>" <?php echo ($uda_filter && $uda['id'] == $uda_filter) ? 'selected' : ''; ?>>
+                                        <?php echo e($uda['nome']); ?>
+                                        <?php if ($uda['anno_scolastico']): ?>
+                                            - <?php echo e($uda['anno_scolastico']); ?>
+                                        <?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted">Associa questa prova ad un'Unità Di Apprendimento</small>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="form-group">
                         <label for="griglia_id">Griglia di Valutazione *</label>
                         <select id="griglia_id" name="griglia_id" class="form-control" required>
@@ -220,7 +312,7 @@ $prove = $stmt->fetchAll();
                     <div class="form-group">
                         <label for="descrizione">Descrizione</label>
                         <textarea id="descrizione" name="descrizione" class="form-control" rows="3"
-                                  placeholder="Descrizione della prova o dell'UDA"></textarea>
+                                  placeholder="Descrizione della prova"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -248,6 +340,24 @@ $prove = $stmt->fetchAll();
                                placeholder="es. Verifica Unità 1">
                     </div>
 
+                    <?php if (!empty($uda_list)): ?>
+                        <div class="form-group">
+                            <label for="edit_uda_id">📚 UDA (Facoltativo)</label>
+                            <select id="edit_uda_id" name="uda_id" class="form-control">
+                                <option value="">Nessuna UDA (prova indipendente)</option>
+                                <?php foreach ($uda_list as $uda): ?>
+                                    <option value="<?php echo $uda['id']; ?>">
+                                        <?php echo e($uda['nome']); ?>
+                                        <?php if ($uda['anno_scolastico']): ?>
+                                            - <?php echo e($uda['anno_scolastico']); ?>
+                                        <?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted">Associa questa prova ad un'Unità Di Apprendimento</small>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="form-group">
                         <label for="edit_griglia_id">Griglia di Valutazione *</label>
                         <select id="edit_griglia_id" name="griglia_id" class="form-control" required>
@@ -268,7 +378,7 @@ $prove = $stmt->fetchAll();
                     <div class="form-group">
                         <label for="edit_descrizione">Descrizione</label>
                         <textarea id="edit_descrizione" name="descrizione" class="form-control" rows="3"
-                                  placeholder="Descrizione della prova o dell'UDA"></textarea>
+                                  placeholder="Descrizione della prova"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -286,7 +396,22 @@ $prove = $stmt->fetchAll();
             document.getElementById('edit_griglia_id').value = prova.griglia_id;
             document.getElementById('edit_data_prova').value = prova.data_prova || '';
             document.getElementById('edit_descrizione').value = prova.descrizione || '';
+
+            // Popola UDA se presente il campo
+            const udaSelect = document.getElementById('edit_uda_id');
+            if (udaSelect) {
+                udaSelect.value = prova.uda_id || '';
+            }
+
             document.getElementById('modalModificaProva').classList.add('active');
+        }
+
+        function filtroUda(udaId) {
+            if (udaId) {
+                window.location.href = 'prove.php?uda_id=' + udaId;
+            } else {
+                window.location.href = 'prove.php';
+            }
         }
 
         // Chiudi modal su click overlay
