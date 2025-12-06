@@ -79,10 +79,14 @@ if (isPost() && $studente_id) {
             $note = post('note_' . $criterio['id'], '');
 
             if ($livello_id) {
-                // Trova il punteggio del livello
+                // Trova la percentuale del livello (0.25, 0.50, 0.75, 1.00)
                 $stmt = $db->prepare("SELECT punteggio FROM livelli WHERE id = ?");
                 $stmt->execute([$livello_id]);
-                $punteggio = $stmt->fetchColumn();
+                $percentuale = $stmt->fetchColumn();
+
+                // Calcola il punteggio effettivo: peso × percentuale
+                // Esempio: peso 5 × 0.75 (Avanzato) = 3.75 punti
+                $punteggio = $criterio['peso'] * $percentuale;
 
                 // Inserisci o aggiorna valutazione
                 $stmt = $db->prepare("

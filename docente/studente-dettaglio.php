@@ -55,14 +55,16 @@ foreach ($prove as $prova) {
     $stmt->execute([$prova['id'], $studente_id]);
     $valutazioni = $stmt->fetchAll();
 
-    // Calcola media ponderata
-    $somma_ponderata = 0;
+    // Calcola media ponderata (nuovo sistema con percentuali)
+    $somma_punteggi = 0;
     $somma_pesi = 0;
     foreach ($valutazioni as $val) {
-        $somma_ponderata += $val['punteggio'] * $val['peso'];
+        // Il punteggio è già peso × percentuale, quindi sommiamo direttamente
+        $somma_punteggi += $val['punteggio'];
         $somma_pesi += $val['peso'];
     }
-    $media = $somma_pesi > 0 ? $somma_ponderata / $somma_pesi : 0;
+    // Media su 10: (somma_punteggi / somma_pesi) × 10
+    $media = $somma_pesi > 0 ? ($somma_punteggi / $somma_pesi) * 10 : 0;
 
     $risultati[] = [
         'prova' => $prova,

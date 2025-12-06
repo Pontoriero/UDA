@@ -17,7 +17,7 @@ $totale_prove = $stmt->fetchColumn();
 
 $stmt = $db->prepare("
     SELECT AVG(
-        (SELECT SUM(v2.punteggio * c.peso) / SUM(c.peso)
+        (SELECT (SUM(v2.punteggio) / SUM(c.peso)) * 10
          FROM valutazioni v2
          JOIN criteri c ON v2.criterio_id = c.id
          WHERE v2.prova_id = v.prova_id AND v2.studente_id = v.studente_id)
@@ -36,7 +36,7 @@ $stmt = $db->prepare("
         g.nome as griglia_nome,
         u.nome as docente_nome,
         u.cognome as docente_cognome,
-        (SELECT SUM(v2.punteggio * c.peso) / SUM(c.peso)
+        (SELECT (SUM(v2.punteggio) / SUM(c.peso)) * 10
          FROM valutazioni v2
          JOIN criteri c ON v2.criterio_id = c.id
          WHERE v2.prova_id = p.id AND v2.studente_id = ?) as voto_medio

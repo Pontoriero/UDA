@@ -62,7 +62,7 @@ foreach ($studenti as &$studente) {
         $voti_prove = [];
         foreach ($prove as $prova_id) {
             $stmt = $db->prepare("
-                SELECT SUM(v.punteggio * c.peso) / SUM(c.peso) as voto
+                SELECT (SUM(v.punteggio) / SUM(c.peso)) * 10 as voto
                 FROM valutazioni v
                 JOIN criteri c ON v.criterio_id = c.id
                 WHERE v.prova_id = ? AND v.studente_id = ?
