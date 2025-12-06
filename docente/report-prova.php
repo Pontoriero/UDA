@@ -248,40 +248,125 @@ if ($export === 'excel' && !empty($risultati)) {
         .bar-chart {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 20px;
+            margin-top: 20px;
         }
 
         .bar-row {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .bar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .bar-label {
-            width: 150px;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bar-value {
+            font-size: 18px;
+            font-weight: 700;
+            min-width: 50px;
+            text-align: right;
         }
 
         .bar-container {
-            flex: 1;
-            background: #e5e7eb;
-            border-radius: 5px;
-            height: 30px;
+            width: 100%;
+            background: #f3f4f6;
+            border-radius: 8px;
+            height: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
         }
 
         .bar-fill {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             height: 100%;
-            border-radius: 5px;
+            border-radius: 8px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            padding-right: 10px;
-            color: white;
-            font-weight: bold;
+            padding: 0 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .bar-fill.excellent {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        }
+
+        .bar-fill.good {
+            background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .bar-fill.sufficient {
+            background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .bar-fill.insufficient {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .bar-stats {
+            display: flex;
+            gap: 15px;
             font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .bar-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .bar-chart {
+                gap: 25px;
+            }
+
+            .bar-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .bar-value {
+                font-size: 24px;
+                text-align: left;
+            }
+
+            .bar-container {
+                height: 35px;
+            }
+
+            .bar-stats {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -356,11 +441,45 @@ if ($export === 'excel' && !empty($risultati)) {
                 <div class="card-body">
                     <div class="bar-chart">
                         <?php foreach ($statistiche_criteri as $stat): ?>
+                            <?php
+                            $media = $stat['media'];
+                            $percentuale = ($media / 10) * 100;
+
+                            // Determina classe colore in base al voto
+                            if ($media >= 9) $bar_class = 'excellent';
+                            elseif ($media >= 7) $bar_class = 'good';
+                            elseif ($media >= 6) $bar_class = 'sufficient';
+                            else $bar_class = 'insufficient';
+
+                            // Determina classe colore per il valore
+                            if ($media >= 9) $value_color = '#10b981';
+                            elseif ($media >= 7) $value_color = '#3b82f6';
+                            elseif ($media >= 6) $value_color = '#f59e0b';
+                            else $value_color = '#ef4444';
+                            ?>
                             <div class="bar-row">
-                                <div class="bar-label"><?php echo e($stat['nome']); ?></div>
+                                <div class="bar-header">
+                                    <div class="bar-label"><?php echo e($stat['nome']); ?></div>
+                                    <div class="bar-value" style="color: <?php echo $value_color; ?>;">
+                                        <?php echo formatNumber($media); ?>/10
+                                    </div>
+                                </div>
                                 <div class="bar-container">
-                                    <div class="bar-fill" style="width: <?php echo ($stat['media'] / 10 * 100); ?>%">
-                                        <?php echo formatNumber($stat['media']); ?>
+                                    <div class="bar-fill <?php echo $bar_class; ?>" style="width: <?php echo $percentuale; ?>%">
+                                    </div>
+                                </div>
+                                <div class="bar-stats">
+                                    <div class="bar-stat">
+                                        <span style="color: #10b981;">▲</span>
+                                        <span>Max: <?php echo formatNumber($stat['max']); ?></span>
+                                    </div>
+                                    <div class="bar-stat">
+                                        <span style="color: #ef4444;">▼</span>
+                                        <span>Min: <?php echo formatNumber($stat['min']); ?></span>
+                                    </div>
+                                    <div class="bar-stat">
+                                        <span>⚖️</span>
+                                        <span>Peso: <?php echo formatNumber($stat['peso']); ?></span>
                                     </div>
                                 </div>
                             </div>
