@@ -388,10 +388,10 @@ if (isPost() && get('ajax') == '1') {
             { nome: 'Insufficiente', descrizione: 'Lavoro insufficiente', punteggio: 4 }
         ],
         progetto: [
-            { nome: 'Ecc.', descrizione: 'Completa e professionale', punteggio: 10 },
-            { nome: 'Avan.', descrizione: 'Completa', punteggio: 7.5 },
+            { nome: 'Base', descrizione: 'Manca o è incompleta', punteggio: 2.5 },
             { nome: 'Inter.', descrizione: 'Parzialmente completa', punteggio: 5 },
-            { nome: 'Base', descrizione: 'Manca o è incompleta', punteggio: 2.5 }
+            { nome: 'Avan.', descrizione: 'Completa', punteggio: 7.5 },
+            { nome: 'Ecc.', descrizione: 'Completa e professionale', punteggio: 10 }
         ]
     };
 

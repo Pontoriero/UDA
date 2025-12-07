@@ -1,9 +1,9 @@
 TIPO,NOME,PESO,PUNTEGGIO,DESCRIZIONE
 CRITERIO,Intestazione del Progetto,1,,
-LIVELLO,Base,,0.625,Manca o è incompleta
-LIVELLO,Inter.,,2.5,Parzialmente completa
-LIVELLO,Avan.,,3.75,Completa
-LIVELLO,Ecc.,,5,Completa e professionale
+LIVELLO,Base,,0.25,Manca o è incompleta
+LIVELLO,Inter.,,0.5,Parzialmente completa
+LIVELLO,Avan.,,0.75,Completa
+LIVELLO,Ecc.,,1,Completa e professionale
 CRITERIO,Breve descrizione del progetto,5,,
 LIVELLO,Base,,1.25,Descrizione confusa o fuori contesto
 LIVELLO,Inter.,,2.5,Descrizione generica e approssimativa
