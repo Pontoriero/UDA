@@ -430,6 +430,21 @@ if (isPost() && get('ajax') == '1') {
         card.draggable = true;
 
         const livelli = criterio.livelli || templateLivelli.base;
+        const peso = parseFloat(criterio.peso) || 1;
+
+        // Calcola i punteggi in base al peso del criterio
+        const livelliCalcolati = livelli.map(livello => {
+            const punteggioTemplate = parseFloat(livello.punteggio) || 0;
+            // Se il punteggio è > 1, è un valore del template (2.5, 5, 7.5, 10)
+            // Lo convertiamo in frazione (/10) e moltiplichiamo per il peso
+            const frazione = punteggioTemplate > 1 ? punteggioTemplate / 10 : punteggioTemplate;
+            const punteggioCalcolato = peso * frazione;
+
+            return {
+                ...livello,
+                punteggioDisplay: punteggioCalcolato.toFixed(2)
+            };
+        });
 
         card.innerHTML = `
             <button class="btn-remove-criterio" onclick="rimuoviCriterio(${index})" title="Rimuovi criterio">×</button>
@@ -439,9 +454,9 @@ if (isPost() && get('ajax') == '1') {
                 <input type="text" class="form-control" placeholder="Nome criterio *"
                        value="${criterio.nome || ''}"
                        onchange="aggiornaCriterio(${index}, 'nome', this.value)">
-                <input type="number" class="form-control" placeholder="Peso" step="0.1" min="0"
+                <input type="number" class="form-control peso-input" placeholder="Peso" step="0.1" min="0"
                        value="${criterio.peso || 1}"
-                       onchange="aggiornaCriterio(${index}, 'peso', this.value)">
+                       onchange="aggiornaCriterio(${index}, 'peso', this.value); ricalcolaPunteggi(${index})">
                 <span class="badge badge-primary">Criterio ${index + 1}</span>
             </div>
 
@@ -450,14 +465,14 @@ if (isPost() && get('ajax') == '1') {
                    onchange="aggiornaCriterio(${index}, 'descrizione', this.value)">
 
             <div class="livelli-grid">
-                ${livelli.map((livello, livIndex) => `
+                ${livelliCalcolati.map((livello, livIndex) => `
                     <div class="livello-card">
                         <span class="livello-label">Livello ${livIndex + 1}</span>
                         <input type="text" placeholder="Nome livello"
                                value="${livello.nome || ''}"
                                onchange="aggiornaLivello(${index}, ${livIndex}, 'nome', this.value)">
-                        <input type="number" step="0.1" placeholder="Punteggio"
-                               value="${livello.punteggio || 0}"
+                        <input type="number" step="0.01" placeholder="Punteggio" class="punteggio-input"
+                               value="${livello.punteggioDisplay}"
                                onchange="aggiornaLivello(${index}, ${livIndex}, 'punteggio', this.value)">
                         <textarea placeholder="Descrizione livello"
                                   onchange="aggiornaLivello(${index}, ${livIndex}, 'descrizione', this.value)">${livello.descrizione || ''}</textarea>
@@ -499,6 +514,65 @@ if (isPost() && get('ajax') == '1') {
         }
 
         criteri[realIndex].livelli[livelloIndex][campo] = valore;
+    }
+
+    function ricalcolaPunteggi(index) {
+        const card = document.querySelector(`.criterio-card[data-index="${index}"]`);
+        if (!card) return;
+
+        const pesoInput = card.querySelector('.peso-input');
+        const peso = parseFloat(pesoInput.value) || 1;
+
+        const livelliCards = card.querySelectorAll('.livello-card');
+        livelliCards.forEach(livCard => {
+            const punteggioInput = livCard.querySelector('.punteggio-input');
+            const punteggioAttuale = parseFloat(punteggioInput.value) || 0;
+
+            // Calcola la frazione dal punteggio attuale
+            // Se il punteggio corrente sembra già calcolato (es. 3.75 per peso 5)
+            // lo riconvertiamo in frazione dividendo per il peso precedente
+            // Poi lo moltiplichiamo per il nuovo peso
+
+            // Prova a riconoscere la frazione originale
+            let frazione = 0;
+            if (punteggioAttuale > 0 && punteggioAttuale <= 1) {
+                // È già una frazione
+                frazione = punteggioAttuale;
+            } else if (punteggioAttuale > 1) {
+                // Potrebbe essere un valore calcolato, proviamo a dedurre la frazione
+                // Verifichiamo se corrisponde a 0.25, 0.50, 0.75, 1.00
+                const possibiliFrazioni = [0.25, 0.50, 0.75, 1.00, 0.40, 0.60, 0.80];
+                let frazioneMatch = null;
+
+                for (let f of possibiliFrazioni) {
+                    // Prova con diversi pesi possibili (da 1 a 10)
+                    for (let p = 1; p <= 10; p += 0.5) {
+                        if (Math.abs(punteggioAttuale - (p * f)) < 0.01) {
+                            frazioneMatch = f;
+                            break;
+                        }
+                    }
+                    if (frazioneMatch) break;
+                }
+
+                frazione = frazioneMatch || (punteggioAttuale / 10);
+            }
+
+            // Ricalcola il punteggio con il nuovo peso
+            const nuovoPunteggio = (peso * frazione).toFixed(2);
+            punteggioInput.value = nuovoPunteggio;
+
+            // Aggiorna anche nell'array criteri
+            const cards = document.querySelectorAll('.criterio-card');
+            const realIndex = Array.from(cards).findIndex(c => c.dataset.index == index);
+            const livIndex = Array.from(livelliCards).indexOf(livCard);
+
+            if (criteri[realIndex] && criteri[realIndex].livelli && criteri[realIndex].livelli[livIndex]) {
+                criteri[realIndex].livelli[livIndex].punteggio = nuovoPunteggio;
+            }
+        });
+
+        aggiornaStats();
     }
 
     function rimuoviCriterio(index) {
