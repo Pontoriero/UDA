@@ -602,14 +602,23 @@ if (isPost() && get('ajax') == '1') {
         const pesoInput = card.querySelector('.criterio-header input[type="number"]');
         const descrizioneInput = card.querySelector('input[type="text"]:not(.criterio-header input)');
 
+        const peso = parseFloat(pesoInput.value) || 1;
         const livelli = [];
         const livelliCards = card.querySelectorAll('.livello-card');
 
         livelliCards.forEach(livCard => {
             const inputs = livCard.querySelectorAll('input, textarea');
+            const punteggioInput = parseFloat(inputs[1].value) || 0;
+
+            // Calcola il punteggio proporzionale al peso del criterio
+            // Se il punteggio è > 1, è un valore del template (2.5, 5, 7.5, 10)
+            // Lo convertiamo in frazione (/10) e moltiplichiamo per il peso
+            const frazione = punteggioInput > 1 ? punteggioInput / 10 : punteggioInput;
+            const punteggioFinale = peso * frazione;
+
             livelli.push({
                 nome: inputs[0].value,
-                punteggio: parseFloat(inputs[1].value) || 0,
+                punteggio: punteggioFinale,
                 descrizione: inputs[2].value
             });
         });
@@ -617,7 +626,7 @@ if (isPost() && get('ajax') == '1') {
         return {
             nome: nomeInput.value,
             descrizione: descrizioneInput.value,
-            peso: parseFloat(pesoInput.value) || 1,
+            peso: peso,
             livelli: livelli
         };
     }
