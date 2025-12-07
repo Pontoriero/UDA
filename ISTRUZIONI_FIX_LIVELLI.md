@@ -1,13 +1,21 @@
-# Istruzioni per correggere l'ordine dei livelli
+# Istruzioni per correggere l'ordine dei livelli e duplicati
 
-## Problema
-I livelli nel database sono ancora invertiti. Anche se il template è stato corretto, le griglie già create hanno i livelli salvati con l'ordine sbagliato.
+## Problemi rilevati
+
+### 1. Ordine livelli invertito
+I livelli nel database sono invertiti. Anche se il template è stato corretto, le griglie già create hanno i livelli salvati con l'ordine sbagliato.
+
+### 2. Criterio "Consegna files" duplicato
+In alcune griglie il criterio "Consegna files" è presente due volte, e manca "Rispetto dei tempi".
 
 ## Soluzione
 
-### Opzione 1: Usa lo script PHP (Raccomandato)
+### Opzione 1: Usa gli script PHP (Raccomandato)
 
-1. Modifica le credenziali del database in `fix-livelli-order.php` (linee 8-11) se necessario:
+1. Modifica le credenziali del database (se necessario) in entrambi gli script:
+   - `fix-livelli-order.php` (linee 8-11)
+   - `fix-duplicato-consegna.php` (linee 8-11)
+
    ```php
    $dbHost = 'localhost';
    $dbName = 'uda_portal';
@@ -15,21 +23,34 @@ I livelli nel database sono ancora invertiti. Anche se il template è stato corr
    $dbPass = '';
    ```
 
-2. Esegui lo script da terminale:
+2. Esegui gli script da terminale:
    ```bash
+   # 1. Rimuovi il duplicato "Consegna files"
+   php fix-duplicato-consegna.php
+
+   # 2. Inverti l'ordine dei livelli
    php fix-livelli-order.php
    ```
 
-3. Lo script invertirà automaticamente l'ordine dei livelli per tutti i criteri con 4 livelli.
+3. Gli script correggeranno automaticamente tutte le griglie.
 
-### Opzione 2: Usa lo script SQL
+### Opzione 2: Usa gli script SQL
 
 1. Connettiti al database MySQL:
    ```bash
    mysql -u root -p uda_portal
    ```
 
-2. Esegui lo script SQL:
+2. Esegui prima la correzione del duplicato manualmente:
+   ```sql
+   -- Trova e rimuovi duplicati "Consegna files"
+   SELECT id, griglia_id, nome, ordine FROM criteri WHERE nome = 'Consegna files';
+
+   -- Se trovi duplicati, elimina quello con ordine maggiore
+   -- DELETE FROM criteri WHERE id = <ID_DUPLICATO>;
+   ```
+
+3. Poi esegui lo script per invertire i livelli:
    ```sql
    source database/fix-livelli-order.sql;
    ```
