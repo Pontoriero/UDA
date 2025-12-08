@@ -321,8 +321,6 @@ if (isPost() && get('ajax') == '1') {
                 <!-- Toolbar -->
                 <div class="builder-toolbar">
                     <button onclick="aggiungiCriterio()" class="btn btn-primary">+ Aggiungi Criterio</button>
-                    <button onclick="caricaTemplate('standard')" class="btn btn-secondary">📋 Template Standard</button>
-                    <button onclick="caricaTemplate('progetto')" class="btn btn-secondary">📊 Template Progetto</button>
                     <button onclick="duplicaUltimo()" class="btn btn-warning">📑 Duplica Ultimo</button>
                     <div class="quick-stats" id="stats">
                         <strong>Criteri: <span id="count-criteri">0</span></strong> |
@@ -346,13 +344,6 @@ if (isPost() && get('ajax') == '1') {
                     <input type="file" id="csv-file-input" accept=".csv" onchange="importaCSV(event)">
                 </div>
 
-                <!-- Template Livelli Veloci -->
-                <div class="template-selector">
-                    <strong>🎯 Template Livelli Rapidi:</strong><br>
-                    <span class="template-btn" onclick="applicaTemplateBase()">Base (4 livelli numerici)</span>
-                    <span class="template-btn" onclick="applicaTemplateTesto()">Testuale (Eccellente, Buono, Sufficiente, Insufficiente)</span>
-                    <span class="template-btn" onclick="applicaTemplateProgetto()">Progetto (Base, Inter., Avan., Ecc.)</span>
-                </div>
 
                 <!-- Container Criteri -->
                 <div id="criteri-container">
@@ -371,29 +362,6 @@ if (isPost() && get('ajax') == '1') {
     <script>
     let criteri = <?php echo json_encode($criteri); ?>;
     let criterioCounter = criteri.length;
-    let templateLivelliCorrente = null;
-
-    // Template livelli predefiniti
-    const templateLivelli = {
-        base: [
-            { nome: 'Livello 4', descrizione: 'Ottimo', punteggio: 10 },
-            { nome: 'Livello 3', descrizione: 'Buono', punteggio: 8 },
-            { nome: 'Livello 2', descrizione: 'Sufficiente', punteggio: 6 },
-            { nome: 'Livello 1', descrizione: 'Insufficiente', punteggio: 4 }
-        ],
-        testuale: [
-            { nome: 'Eccellente', descrizione: 'Lavoro eccellente e professionale', punteggio: 10 },
-            { nome: 'Buono', descrizione: 'Lavoro buono con alcune imperfezioni', punteggio: 8 },
-            { nome: 'Sufficiente', descrizione: 'Lavoro sufficiente', punteggio: 6 },
-            { nome: 'Insufficiente', descrizione: 'Lavoro insufficiente', punteggio: 4 }
-        ],
-        progetto: [
-            { nome: 'Base', descrizione: 'Manca o è incompleta', punteggio: 2.5 },
-            { nome: 'Inter.', descrizione: 'Parzialmente completa', punteggio: 5 },
-            { nome: 'Avan.', descrizione: 'Completa', punteggio: 7.5 },
-            { nome: 'Ecc.', descrizione: 'Completa e professionale', punteggio: 10 }
-        ]
-    };
 
     // Carica criteri esistenti
     document.addEventListener('DOMContentLoaded', function() {
@@ -414,7 +382,12 @@ if (isPost() && get('ajax') == '1') {
             nome: '',
             descrizione: '',
             peso: 1.0,
-            livelli: templateLivelli.base
+            livelli: [
+                { nome: 'Livello 1', descrizione: '', punteggio: 0 },
+                { nome: 'Livello 2', descrizione: '', punteggio: 0 },
+                { nome: 'Livello 3', descrizione: '', punteggio: 0 },
+                { nome: 'Livello 4', descrizione: '', punteggio: 0 }
+            ]
         };
 
         aggiungiCriterioDOM(criterio, criterioCounter);
@@ -429,20 +402,14 @@ if (isPost() && get('ajax') == '1') {
         card.dataset.index = index;
         card.draggable = true;
 
-        const livelli = criterio.livelli || templateLivelli.base;
+        const livelli = criterio.livelli || [];
         const peso = parseFloat(criterio.peso) || 1;
 
-        // Calcola i punteggi in base al peso del criterio
+        // NON facciamo conversioni - usiamo i punteggi esattamente come sono
         const livelliCalcolati = livelli.map(livello => {
-            const punteggioTemplate = parseFloat(livello.punteggio) || 0;
-            // Se il punteggio è > 1, è un valore del template (2.5, 5, 7.5, 10)
-            // Lo convertiamo in frazione (/10) e moltiplichiamo per il peso
-            const frazione = punteggioTemplate > 1 ? punteggioTemplate / 10 : punteggioTemplate;
-            const punteggioCalcolato = peso * frazione;
-
             return {
                 ...livello,
-                punteggioDisplay: punteggioCalcolato.toFixed(2)
+                punteggioDisplay: parseFloat(livello.punteggio) || 0
             };
         });
 
@@ -517,61 +484,8 @@ if (isPost() && get('ajax') == '1') {
     }
 
     function ricalcolaPunteggi(index) {
-        const card = document.querySelector(`.criterio-card[data-index="${index}"]`);
-        if (!card) return;
-
-        const pesoInput = card.querySelector('.peso-input');
-        const peso = parseFloat(pesoInput.value) || 1;
-
-        const livelliCards = card.querySelectorAll('.livello-card');
-        livelliCards.forEach(livCard => {
-            const punteggioInput = livCard.querySelector('.punteggio-input');
-            const punteggioAttuale = parseFloat(punteggioInput.value) || 0;
-
-            // Calcola la frazione dal punteggio attuale
-            // Se il punteggio corrente sembra già calcolato (es. 3.75 per peso 5)
-            // lo riconvertiamo in frazione dividendo per il peso precedente
-            // Poi lo moltiplichiamo per il nuovo peso
-
-            // Prova a riconoscere la frazione originale
-            let frazione = 0;
-            if (punteggioAttuale > 0 && punteggioAttuale <= 1) {
-                // È già una frazione
-                frazione = punteggioAttuale;
-            } else if (punteggioAttuale > 1) {
-                // Potrebbe essere un valore calcolato, proviamo a dedurre la frazione
-                // Verifichiamo se corrisponde a 0.25, 0.50, 0.75, 1.00
-                const possibiliFrazioni = [0.25, 0.50, 0.75, 1.00, 0.40, 0.60, 0.80];
-                let frazioneMatch = null;
-
-                for (let f of possibiliFrazioni) {
-                    // Prova con diversi pesi possibili (da 1 a 10)
-                    for (let p = 1; p <= 10; p += 0.5) {
-                        if (Math.abs(punteggioAttuale - (p * f)) < 0.01) {
-                            frazioneMatch = f;
-                            break;
-                        }
-                    }
-                    if (frazioneMatch) break;
-                }
-
-                frazione = frazioneMatch || (punteggioAttuale / 10);
-            }
-
-            // Ricalcola il punteggio con il nuovo peso
-            const nuovoPunteggio = (peso * frazione).toFixed(2);
-            punteggioInput.value = nuovoPunteggio;
-
-            // Aggiorna anche nell'array criteri
-            const cards = document.querySelectorAll('.criterio-card');
-            const realIndex = Array.from(cards).findIndex(c => c.dataset.index == index);
-            const livIndex = Array.from(livelliCards).indexOf(livCard);
-
-            if (criteri[realIndex] && criteri[realIndex].livelli && criteri[realIndex].livelli[livIndex]) {
-                criteri[realIndex].livelli[livIndex].punteggio = nuovoPunteggio;
-            }
-        });
-
+        // NON ricalcoliamo più automaticamente i punteggi
+        // L'utente deve impostare i punteggi manualmente o tramite CSV
         aggiornaStats();
     }
 
@@ -600,62 +514,6 @@ if (isPost() && get('ajax') == '1') {
         });
     }
 
-    function applicaTemplateBase() {
-        templateLivelliCorrente = templateLivelli.base;
-        alert('Template Base applicato! I prossimi criteri useranno questo template.');
-    }
-
-    function applicaTemplateTesto() {
-        templateLivelliCorrente = templateLivelli.testuale;
-        alert('Template Testuale applicato! I prossimi criteri useranno questo template.');
-    }
-
-    function applicaTemplateProgetto() {
-        templateLivelliCorrente = templateLivelli.progetto;
-        alert('Template Progetto applicato! I prossimi criteri useranno questo template.');
-    }
-
-    function caricaTemplate(tipo) {
-        if (!confirm('Questo sostituirà tutti i criteri esistenti. Continuare?')) return;
-
-        document.getElementById('criteri-container').innerHTML = '';
-        criteri = [];
-        criterioCounter = 0;
-
-        if (tipo === 'progetto') {
-            // Template per valutazione progetti
-            const criteriProgetto = [
-                { nome: 'Intestazione del Progetto', peso: 1, livelli: templateLivelli.progetto },
-                { nome: 'Breve descrizione del progetto', peso: 5, livelli: templateLivelli.progetto },
-                { nome: 'Obiettivi del progetto', peso: 5, livelli: templateLivelli.progetto },
-                { nome: 'Stakeholders principali', peso: 1, livelli: templateLivelli.progetto },
-                { nome: 'Attività da eseguire', peso: 5, livelli: templateLivelli.progetto },
-                { nome: 'Analisi dei rischi', peso: 3, livelli: templateLivelli.progetto },
-                { nome: 'Principali Deliverable', peso: 3, livelli: templateLivelli.progetto },
-                { nome: 'Milestone', peso: 3, livelli: templateLivelli.progetto },
-                { nome: 'Principali risorse', peso: 3, livelli: templateLivelli.progetto },
-                { nome: 'Tempistica preliminare (Gantt)', peso: 4, livelli: templateLivelli.progetto },
-                { nome: 'Autorizzazioni', peso: 1, livelli: templateLivelli.progetto },
-                { nome: 'WBS (Work Breakdown Structure)', peso: 4, livelli: templateLivelli.progetto },
-                { nome: 'Consegna files', peso: 5, livelli: templateLivelli.progetto },
-                { nome: 'Rispetto dei tempi', peso: 5, livelli: templateLivelli.progetto }
-            ];
-
-            criteriProgetto.forEach(c => aggiungiCriterio(c));
-        } else if (tipo === 'standard') {
-            // Template standard
-            const criteriStandard = [
-                { nome: 'Conoscenze', peso: 2, livelli: templateLivelli.testuale },
-                { nome: 'Competenze', peso: 2, livelli: templateLivelli.testuale },
-                { nome: 'Abilità', peso: 1, livelli: templateLivelli.testuale }
-            ];
-
-            criteriStandard.forEach(c => aggiungiCriterio(c));
-        }
-
-        aggiornaStats();
-    }
-
     function aggiornaStats() {
         const cards = document.querySelectorAll('.criterio-card');
         const numCriteri = cards.length;
@@ -682,13 +540,8 @@ if (isPost() && get('ajax') == '1') {
 
         livelliCards.forEach(livCard => {
             const inputs = livCard.querySelectorAll('input, textarea');
-            const punteggioInput = parseFloat(inputs[1].value) || 0;
-
-            // Calcola il punteggio proporzionale al peso del criterio
-            // Se il punteggio è > 1, è un valore del template (2.5, 5, 7.5, 10)
-            // Lo convertiamo in frazione (/10) e moltiplichiamo per il peso
-            const frazione = punteggioInput > 1 ? punteggioInput / 10 : punteggioInput;
-            const punteggioFinale = peso * frazione;
+            // NON facciamo conversioni - prendiamo il punteggio esattamente come è
+            const punteggioFinale = parseFloat(inputs[1].value) || 0;
 
             livelli.push({
                 nome: inputs[0].value,
