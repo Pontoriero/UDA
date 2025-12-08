@@ -41,6 +41,7 @@ foreach ($criteri as &$criterio) {
     $stmt->execute([$criterio['id']]);
     $criterio['livelli'] = $stmt->fetchAll();
 }
+unset($criterio); // Distruggi il riferimento per evitare bug successivi
 
 // Filtro classe
 $classe_selezionata = get('classe', '');

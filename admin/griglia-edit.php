@@ -34,6 +34,7 @@ if ($editing) {
         $stmt->execute([$criterio['id']]);
         $criterio['livelli'] = $stmt->fetchAll();
     }
+    unset($criterio); // Distruggi il riferimento per evitare bug successivi
 }
 
 if (isPost()) {

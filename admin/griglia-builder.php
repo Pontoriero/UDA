@@ -34,6 +34,7 @@ foreach ($criteri as &$criterio) {
     $stmt->execute([$criterio['id']]);
     $criterio['livelli'] = $stmt->fetchAll();
 }
+unset($criterio); // Distruggi il riferimento per evitare bug successivi
 
 // Gestione salvataggio via AJAX
 if (isPost() && get('ajax') == '1') {
