@@ -30,7 +30,7 @@ $stmt->execute([$griglia_id]);
 $criteri = $stmt->fetchAll();
 
 foreach ($criteri as &$criterio) {
-    $stmt = $db->prepare("SELECT * FROM livelli WHERE criterio_id = ? ORDER BY punteggio DESC");
+    $stmt = $db->prepare("SELECT * FROM livelli WHERE criterio_id = ? ORDER BY ordine");
     $stmt->execute([$criterio['id']]);
     $criterio['livelli'] = $stmt->fetchAll();
 }
